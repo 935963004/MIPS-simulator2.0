@@ -64,7 +64,6 @@ int main(int argc, char *argv[])
 	}
 	reg[pc] = lable["main"];
     while(true){
-        cout << code[reg[pc]] << endl;
 		WB();
 		MA();
 		E();
