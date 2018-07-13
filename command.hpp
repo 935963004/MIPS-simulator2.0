@@ -13,8 +13,14 @@ using namespace std;
 const int SIZE = 4 * 1024 * 1024;
 static int reg[33], heapLen = 0, conti = 0;
 static unsigned char Memory[SIZE];
-static bool shutdown = false, hReg = false;
-static REGISTER preReg = none;
+static bool shutdown = false;
+struct pre
+{
+	REGISTER reg = none;
+	bool hReg = false;
+};
+static queue<pre> preReg;
+static pre p;
 struct cmd
 {
 	INSRTUCT type;
@@ -251,29 +257,34 @@ inline void IDDP()
 		case addu:
 		case sub:
 		case subu: {
-			if (COMMAND.regi[1] == preReg){
+			if (COMMAND.regi[1] == preReg.back().reg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (COMMAND.regi[1] == preReg.front().reg) WB();
 			COMMAND.regiValue[0] = reg[COMMAND.regi[1]];
 			if (COMMAND.regiSize == 3) {
-				if (COMMAND.regi[2] == preReg){
+				if (COMMAND.regi[2] == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (COMMAND.regi[2] == preReg.front().reg) WB();
 				COMMAND.regiValue[1] = reg[COMMAND.regi[2]];
 			}
+			preReg.pop();
 			break;
 		}
 		case addiu: {
-			if (COMMAND.regi[1] == preReg){
+			if (COMMAND.regi[1] == preReg.back().reg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (COMMAND.regi[1] == preReg.front().reg) WB();
 			COMMAND.regiValue[0] = reg[COMMAND.regi[1]];
+			preReg.pop();
 			break;
 		}
 		case mul:
@@ -281,72 +292,82 @@ inline void IDDP()
 		case Div:
 		case divu: {
 			if (COMMAND.regiSize + COMMAND.flag == 3) {
-				if (COMMAND.regi[1] == preReg){
+				if (COMMAND.regi[1] == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (COMMAND.regi[1] == preReg.front().reg) WB();
 				COMMAND.regiValue[0] = reg[COMMAND.regi[1]];
 				if (!COMMAND.flag) {
-					if (COMMAND.regi[2] == preReg){
+					if (COMMAND.regi[2] == preReg.back().reg) {
 						WB();
 						MA();
 						WB();
 					}
+					else if (COMMAND.regi[2] == preReg.front().reg) WB();
 					COMMAND.regiValue[1] = reg[COMMAND.regi[2]];
 				}
 			}
 			else {
 				if (!COMMAND.flag) {
-					if (COMMAND.regi[0] == preReg || COMMAND.regi[1] == preReg){
+					if (COMMAND.regi[1] == preReg.back().reg || COMMAND.regi[0] == preReg.front().reg) {
 						WB();
 						MA();
 						WB();
 					}
+					else if (COMMAND.regi[1] == preReg.front().reg || COMMAND.regi[0] == preReg.front().reg) WB();
 					COMMAND.regiValue[0] = reg[COMMAND.regi[0]];
 					COMMAND.regiValue[1] = reg[COMMAND.regi[1]];
 				}
 				else {
-					if (COMMAND.regi[0] == preReg){
+					if (COMMAND.regi[0] == preReg.back().reg) {
 						WB();
 						MA();
 						WB();
 					}
+					else if (COMMAND.regi[0] == preReg.front().reg) WB();
 					COMMAND.regiValue[0] = reg[COMMAND.regi[0]];
 				}
 			}
+			preReg.pop();
 			break;
 		}
 		case Xor:
 		case xoru:
 		case rem:
 		case remu: {
-			if (COMMAND.regi[1] == preReg){
-					WB();
-					MA();
-					WB();
+			if (COMMAND.regi[1] == preReg.back().reg) {
+				WB();
+				MA();
+				WB();
 			}
+			else if (COMMAND.regi[1] == preReg.front().reg) WB();
 			COMMAND.regiValue[0] = reg[COMMAND.regi[1]];
 			if (!COMMAND.flag) {
-				if (COMMAND.regi[2] == preReg){
+				if (COMMAND.regi[2] == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (COMMAND.regi[2] == preReg.front().reg) WB();
 				COMMAND.regiValue[1] = reg[COMMAND.regi[2]];
 			}
+			preReg.pop();
 			break;
 		}
 		case neg:
 		case negu: {
 			if (!COMMAND.flag) {
-				if (COMMAND.regi[1] == preReg){
+				if (COMMAND.regi[1] == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (COMMAND.regi[1] == preReg.front().reg) WB();
 				COMMAND.regiValue[0] = reg[COMMAND.regi[1]];
 			}
+			preReg.pop();
 			break;
 		}
 		case seq:
@@ -355,20 +376,23 @@ inline void IDDP()
 		case sle:
 		case slt:
 		case sne: {
-			if (COMMAND.regi[1] == preReg){
+			if (COMMAND.regi[1] == preReg.back().reg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (COMMAND.regi[1] == preReg.front().reg) WB();
 			COMMAND.regiValue[0] = reg[COMMAND.regi[1]];
 			if (!COMMAND.flag) {
-				if (COMMAND.regi[2] == preReg){
+				if (COMMAND.regi[2] == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (COMMAND.regi[2] == preReg.front().reg) WB();
 				COMMAND.regiValue[1] = reg[COMMAND.regi[2]];
 			}
+			preReg.pop();
 			break;
 		}
 		case beq:
@@ -377,20 +401,23 @@ inline void IDDP()
 		case ble:
 		case bgt:
 		case blt: {
-			if (COMMAND.regi[0] == preReg){
+			if (COMMAND.regi[0] == preReg.back().reg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (COMMAND.regi[0] == preReg.front().reg) WB();
 			COMMAND.regiValue[0] = reg[COMMAND.regi[0]];
 			if (!COMMAND.flag) {
-				if (COMMAND.regi[1] == preReg){
+				if (COMMAND.regi[1] == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (COMMAND.regi[1] == preReg.front().reg) WB();
 				COMMAND.regiValue[1] = reg[COMMAND.regi[1]];
 			}
+			preReg.pop();
 			break;
 		}
 		case beqz:
@@ -401,12 +428,14 @@ inline void IDDP()
 		case bltz:
 		case jr:
 		case jalr: {
-			if (COMMAND.regi[0] == preReg){
+			if (COMMAND.regi[0] == preReg.back().reg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (COMMAND.regi[0] == preReg.front().reg) WB();
 			COMMAND.regiValue[0] = reg[COMMAND.regi[0]];
+			preReg.pop();
 			break;
 		}
 		case lb:
@@ -416,77 +445,95 @@ inline void IDDP()
 		case sh:
 		case sw: {
 			if (COMMAND.regiSize != 1) {
-				if (COMMAND.regi[1] == preReg){
+				if (COMMAND.regi[1] == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (COMMAND.regi[1] == preReg.front().reg) WB();
 				COMMAND.regiValue[0] = reg[COMMAND.regi[1]];
 			}
+			preReg.pop();
 			break;
 		}
 		case Move: {
-			if (COMMAND.regi[1] == preReg){
+			if (COMMAND.regi[1] == preReg.back().reg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (COMMAND.regi[1] == preReg.front().reg) WB();
 			COMMAND.regiValue[0] = reg[COMMAND.regi[1]];
+			preReg.pop();
 			break;
 		}
 		case mfhi: {
-			if (hReg){
+			
+			if (preReg.back().hReg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (preReg.front().hReg) WB();
 			COMMAND.regiValue[0] = reg[hi];
+			preReg.pop();
 			break;
 		}
 		case mflo: {
-			if (lo == preReg){
+			if (lo == preReg.back().reg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (lo == preReg.front().reg) WB();
 			COMMAND.regiValue[0] = reg[lo];
+			preReg.pop();
 			break;
 		}
 		case syscall: {
-			if (v0 == preReg){
+			if (v0 == preReg.back().reg) {
 				WB();
 				MA();
 				WB();
 			}
+			else if (v0 == preReg.front().reg) WB();
 			switch (reg[v0]) {
 			case 4: {
-				if (a0 == preReg){
+				if (a0 == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (a0 == preReg.front().reg) WB();
 				COMMAND.regiValue[0] = reg[a0];
 				break;
 			}
 			case 8: {
-				if (a0 == preReg){
+				if (a0 == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (a0 == preReg.front().reg) WB();
 				COMMAND.regiValue[0] = reg[a0];
 				break;
 			}
 			case 9: {
-				if (a0 == preReg){
+				if (a0 == preReg.back().reg) {
 					WB();
 					MA();
 					WB();
 				}
+				else if (a0 == preReg.front().reg) WB();
 				COMMAND.regiValue[0] = reg[a0];
 				break;
 			}
 			}
+			preReg.pop();
+			break;
+		}
+		default: {
+			if (preReg.size() >= 2) preReg.pop();
 			break;
 		}
 		}
@@ -508,8 +555,9 @@ inline void E()
 			if (COMMAND.regiSize == 3)
 				Mem.result = tmp + COMMAND.regiValue[1];
 			else Mem.result = tmp + COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case addiu: {
@@ -517,8 +565,9 @@ inline void E()
 			Mem.Rtype = COMMAND.regi[0];
 			int tmp = COMMAND.regiValue[0];
 			Mem.result = tmp + COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case sub:
@@ -528,8 +577,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (COMMAND.regiSize == 3) Mem.result = tmp - COMMAND.regiValue[1];
 			else Mem.result = tmp - COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case mul:
@@ -541,8 +591,9 @@ inline void E()
 				int tmp = COMMAND.regiValue[0];
 				if (!COMMAND.flag) Mem.result = tmp * COMMAND.regiValue[1];
 				else Mem.result = tmp * COMMAND.num;
-				preReg = Mem.Rtype;
-				hReg = false;
+				p.reg = Mem.Rtype;
+				p.hReg = false;
+				preReg.push(p);
 			}
 			else {
 				Mem.MUL = true;
@@ -550,15 +601,17 @@ inline void E()
 					long long tmp = COMMAND.regiValue[0] * COMMAND.regiValue[1];
 					Mem.low = tmp;
 					Mem.high = tmp >> 32;
-					preReg = lo;
-					hReg = true;
+					p.reg = lo;
+					p.hReg = true;
+					preReg.push(p);
 				}
 				else {
 					long long tmp = COMMAND.regiValue[0] * COMMAND.num;
 					Mem.low = tmp;
 					Mem.high = tmp >> 32;
-					preReg = lo;
-					hReg = true;
+					p.reg = lo;
+					p.hReg = true;
+					preReg.push(p);
 				}
 			}
 			break;
@@ -572,8 +625,9 @@ inline void E()
 				int tmp = COMMAND.regiValue[0];
 				if (!COMMAND.flag) Mem.result = tmp / COMMAND.regiValue[1];
 				else Mem.result = tmp / COMMAND.num;
-				preReg = Mem.Rtype;
-				hReg = false;
+				p.reg = Mem.Rtype;
+				p.hReg = false;
+				preReg.push(p);
 			}
 			else {
 				Mem.MUL = true;
@@ -581,15 +635,17 @@ inline void E()
 					int tmp1 = COMMAND.regiValue[0], tmp2 = COMMAND.regiValue[1];
 					Mem.low = tmp1 / tmp2;
 					Mem.high = tmp1 % tmp2;
-					preReg = lo;
-					hReg = true;
+					p.reg = lo;
+					p.hReg = true;
+					preReg.push(p);
 				}
 				else {
 					int tmp1 = COMMAND.regiValue[0], tmp2 = COMMAND.num;
 					Mem.low = tmp1 / tmp2;
 					Mem.high = tmp1 % tmp2;
-					preReg = lo;
-					hReg = true;
+					p.reg = lo;
+					p.hReg = true;
+					preReg.push(p);
 				}
 			}
 			break;
@@ -598,15 +654,12 @@ inline void E()
 		case xoru: {
 			Mem.Itype = COMMAND.type;
 			Mem.Rtype = COMMAND.regi[0];
-			if (COMMAND.regi[1] == preReg) WB();
-			int tmp = reg[COMMAND.regi[1]];
-			if (!COMMAND.flag) {
-				if (COMMAND.regi[2] == preReg) WB();
-				Mem.result = tmp ^ reg[COMMAND.regi[2]];
-			}
+			int tmp = COMMAND.regiValue[0];
+			if (!COMMAND.flag) Mem.result = tmp ^ COMMAND.regiValue[1];
 			else Mem.result = tmp ^ COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case neg: {
@@ -614,8 +667,9 @@ inline void E()
 			Mem.Rtype = COMMAND.regi[0];
 			if (!COMMAND.flag) Mem.result = -COMMAND.regiValue[0];
 			else Mem.result = -COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case negu: {
@@ -623,8 +677,9 @@ inline void E()
 			Mem.Rtype = COMMAND.regi[0];
 			if (!COMMAND.flag) Mem.result = ~COMMAND.regiValue[0];
 			else Mem.result = ~COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case rem:
@@ -634,16 +689,18 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.result = tmp % COMMAND.regiValue[1];
 			else Mem.result = tmp % COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case li: {
 			Mem.Itype = COMMAND.type;
 			Mem.Rtype = COMMAND.regi[0];
 			Mem.result = COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case la: {
@@ -651,8 +708,9 @@ inline void E()
 			Mem.Rtype = COMMAND.regi[0];
 			if (!COMMAND.flag) Mem.result = COMMAND.Lable;
 			else Mem.result = COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case seq: {
@@ -661,8 +719,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.result = tmp == COMMAND.regiValue[1];
 			else Mem.result = tmp == COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case sge: {
@@ -671,8 +730,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.result = tmp >= COMMAND.regiValue[1];
 			else Mem.result = tmp >= COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case sgt: {
@@ -681,8 +741,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.result = tmp > COMMAND.regiValue[1];
 			else Mem.result = tmp > COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case sle: {
@@ -691,8 +752,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.result = tmp <= COMMAND.regiValue[1];
 			else Mem.result = tmp <= COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case slt: {
@@ -701,8 +763,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.result = tmp < COMMAND.regiValue[1];
 			else Mem.result = tmp < COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case sne: {
@@ -711,8 +774,9 @@ inline void E()
 			int tmp = reg[COMMAND.regi[1]];
 			if (!COMMAND.flag) Mem.result = tmp != COMMAND.regiValue[1];
 			else Mem.result = tmp != COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case b:
@@ -720,8 +784,9 @@ inline void E()
 			Mem.Itype = COMMAND.type;
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.Lable;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case beq: {
@@ -731,8 +796,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.MUL = tmp == COMMAND.regiValue[1];
 			else Mem.MUL = tmp == COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case bne: {
@@ -742,8 +808,9 @@ inline void E()
 			int tmp = reg[COMMAND.regi[0]];
 			if (!COMMAND.flag) Mem.MUL = tmp != reg[COMMAND.regi[1]];
 			else Mem.MUL = tmp != COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case bge: {
@@ -753,8 +820,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.MUL = tmp >= COMMAND.regiValue[1];
 			else Mem.MUL = tmp >= COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case ble: {
@@ -764,8 +832,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.MUL = tmp <= COMMAND.regiValue[1];
 			else Mem.MUL = tmp <= COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case bgt: {
@@ -775,8 +844,9 @@ inline void E()
 			int tmp = COMMAND.regiValue[0];
 			if (!COMMAND.flag) Mem.MUL = tmp > COMMAND.regiValue[1];
 			else Mem.MUL = tmp > COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case blt: {
@@ -786,8 +856,9 @@ inline void E()
 			int tmp = reg[COMMAND.regi[0]];
 			if (!COMMAND.flag) Mem.MUL = tmp < COMMAND.regiValue[1];
 			else Mem.MUL = tmp < COMMAND.num;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case beqz: {
@@ -795,8 +866,9 @@ inline void E()
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.Lable;
 			Mem.MUL = COMMAND.regiValue[0] == 0;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case bnez: {
@@ -804,8 +876,9 @@ inline void E()
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.Lable;
 			Mem.MUL = COMMAND.regiValue[0] != 0;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case blez: {
@@ -813,8 +886,9 @@ inline void E()
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.Lable;
 			Mem.MUL = COMMAND.regiValue[0] <= 0;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case bgez: {
@@ -822,8 +896,9 @@ inline void E()
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.Lable;
 			Mem.MUL = COMMAND.regiValue[0] >= 0;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case bgtz: {
@@ -831,8 +906,9 @@ inline void E()
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.Lable;
 			Mem.MUL = COMMAND.regiValue[0] > 0;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case bltz: {
@@ -840,16 +916,18 @@ inline void E()
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.Lable;
 			Mem.MUL = COMMAND.regiValue[0] < 0;
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case jr: {
 			Mem.Itype = COMMAND.type;
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.regiValue[0];
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case jal: {
@@ -857,8 +935,9 @@ inline void E()
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.Lable;
 			Mem.low = reg[pc];
-			preReg = ra;
-			hReg = false;
+			p.reg = ra;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case jalr: {
@@ -866,8 +945,9 @@ inline void E()
 			Mem.Rtype = pc;
 			Mem.result = COMMAND.regiValue[0];
 			Mem.low = reg[pc];
-			preReg = ra;
-			hReg = false;
+			p.reg = ra;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case lb:
@@ -880,56 +960,61 @@ inline void E()
 			Mem.Rtype = COMMAND.regi[0];
 			if (COMMAND.regiSize == 1) Mem.pos = COMMAND.Lable;
 			else Mem.pos = COMMAND.num + COMMAND.regiValue[0];
-			if (Mem.Itype == lb || Mem.Itype == lh || Mem.Itype == lw) preReg = Mem.Rtype;
-			else preReg = none;
-			hReg = false;
+			if (Mem.Itype == lb || Mem.Itype == lh || Mem.Itype == lw) p.reg = Mem.Rtype;
+			else p.reg = none;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case Move: {
 			Mem.Itype = COMMAND.type;
 			Mem.Rtype = COMMAND.regi[0];
 			Mem.result = COMMAND.regiValue[0];
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case mfhi: {
 			Mem.Itype = COMMAND.type;
 			Mem.Rtype = COMMAND.regi[0];
 			Mem.result = COMMAND.regiValue[0];
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case mflo: {
 			Mem.Itype = COMMAND.type;
 			Mem.Rtype = COMMAND.regi[0];
 			Mem.result = COMMAND.regiValue[0];
-			preReg = Mem.Rtype;
-			hReg = false;
+			p.reg = Mem.Rtype;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case nop: {
 			Mem.Itype = COMMAND.type;
-			preReg = none;
-			hReg = false;
+			p.reg = none;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		case syscall: {
 			Mem.Itype = COMMAND.type;
 			Mem.MUL = false;
-			hReg = false;
+			p.hReg = false;
 			switch (reg[v0]) {
 			case 1: {
 				printf("%d", reg[a0]);
 				Mem.low = 1;
-				preReg = none;
+				p.reg = none;
 				break;
 			}
 			case 4: {
 				for (int i = reg[a0]; Memory[i] != '\0'; ++i) printf("%c", Memory[i]);
 				Mem.low = 4;
-				preReg = none;
+				p.reg = none;
 				break;
 			}
 			case 5: {
@@ -938,7 +1023,7 @@ inline void E()
 				Mem.Rtype = v0;
 				Mem.result = tmp;
 				Mem.low = 5;
-				preReg = v0;
+				p.reg = v0;
 				break;
 			}
 			case 8: {
@@ -953,7 +1038,7 @@ inline void E()
 				Mem.Rtype = a1;
 				Mem.result = i - reg[a0];
 				Mem.low = 8;
-				preReg = a1;
+				p.reg = a1;
 				break;
 			}
 			case 9: {
@@ -961,23 +1046,25 @@ inline void E()
 				Mem.result = heapLen;
 				Mem.low = 9;
 				heapLen += reg[a0];
-				preReg = v0;
+				p.reg = v0;
 				break;
 			}
 			case 10:
 			case 17: {
 				Mem.MUL = true;
 				Mem.low = 17;
-				preReg = none;
+				p.reg = none;
 				break;
 			}
 			}
+			preReg.push(p);
 			break;
 		}
 		default: {
 			Mem.Itype = nop;
-			preReg = none;
-			hReg = false;
+			p.reg = none;
+			p.hReg = false;
+			preReg.push(p);
 			break;
 		}
 		}
